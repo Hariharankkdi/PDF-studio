@@ -10,7 +10,7 @@ interface CanvasOverlayProps {
 const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const editorCtx = useEditor();
-  const { activeTool, actions, addAction } = editorCtx;
+  const { activeTool, actions, addAction, removeAction } = editorCtx;
   console.log("[CanvasOverlay] activeTool:", activeTool, "actions count:", actions.length);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<{ x: number; y: number }[]>([]);
@@ -163,12 +163,11 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
       }
 
       if (activeTool === "eraser") {
-        // Find and remove the last action near click point
-        // Simple: remove the last action on this page
+        // Remove the topmost action near the click point on this page
         const pageActs = actions.filter((a) => a.page === page);
         if (pageActs.length > 0) {
-          // We can't truly remove from context easily, so we add an eraser action
-          // Instead, let's just use undo behavior - inform user
+          const lastAction = pageActs[pageActs.length - 1];
+          removeAction(lastAction.id);
         }
         return;
       }
@@ -279,7 +278,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
           }}
           onBlur={handleTextSubmit}
           className="absolute bg-card/90 border border-primary rounded px-2 py-1 text-sm text-foreground outline-none shadow-md"
-          style={{ left: textInput.x, top: textInput.y - 10 }}
+          style={{ left: textInput.x, top: textInput.y - 10, zIndex: 20 }}
           placeholder="Type here..."
         />
       )}
