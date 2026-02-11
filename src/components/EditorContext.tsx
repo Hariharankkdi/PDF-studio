@@ -18,6 +18,7 @@ interface EditorContextType {
   setActiveTool: (tool: Tool) => void;
   actions: DrawAction[];
   addAction: (action: DrawAction) => void;
+  removeAction: (id: string) => void;
   undo: () => void;
   redo: () => void;
   canUndo: boolean;
@@ -32,6 +33,7 @@ const defaultContext: EditorContextType = {
   setActiveTool: () => {},
   actions: [],
   addAction: () => {},
+  removeAction: () => {},
   undo: () => {},
   redo: () => {},
   canUndo: false,
@@ -52,6 +54,10 @@ export const EditorProvider = ({ children }: { children: ReactNode }) => {
   const addAction = useCallback((action: DrawAction) => {
     setActions((prev) => [...prev, action]);
     setUndoneActions([]);
+  }, []);
+
+  const removeAction = useCallback((id: string) => {
+    setActions((prev) => prev.filter((a) => a.id !== id));
   }, []);
 
   const undo = useCallback(() => {
@@ -84,6 +90,7 @@ export const EditorProvider = ({ children }: { children: ReactNode }) => {
         setActiveTool,
         actions,
         addAction,
+        removeAction,
         undo,
         redo,
         canUndo: actions.length > 0,
