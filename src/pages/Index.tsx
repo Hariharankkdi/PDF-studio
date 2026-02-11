@@ -9,17 +9,15 @@ type View = "upload" | "workspace";
 
 const Index = () => {
   const [view, setView] = useState<View>("upload");
-  const [fileName, setFileName] = useState("");
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
 
   const handleFileReady = (file: File) => {
-    setFileName(file.name);
-    // Short delay for the completion animation to play
+    setUploadedFile(file);
     setTimeout(() => setView("workspace"), 600);
   };
 
   return (
     <div className="min-h-screen bg-background grid-pattern">
-      {/* Header */}
       <header className="border-b border-border bg-card/60 backdrop-blur-md sticky top-0 z-50">
         <div className="container flex items-center justify-between h-14 px-6">
           <div className="flex items-center gap-3">
@@ -53,7 +51,6 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Content */}
       <main className="container px-6 py-8">
         <AnimatePresence mode="wait">
           {view === "upload" ? (
@@ -92,7 +89,7 @@ const Index = () => {
               exit={{ opacity: 0, y: -20 }}
               transition={{ duration: 0.4 }}
             >
-              <PDFWorkspace fileName={fileName} />
+              {uploadedFile && <PDFWorkspace file={uploadedFile} />}
             </motion.div>
           )}
         </AnimatePresence>
