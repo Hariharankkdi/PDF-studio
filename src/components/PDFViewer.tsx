@@ -1,10 +1,11 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ZoomIn, ZoomOut, ChevronLeft, ChevronRight } from "lucide-react";
 import { Document, Page, pdfjs } from "react-pdf";
 import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import { Button } from "@/components/ui/button";
+import CanvasOverlay from "./CanvasOverlay";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs`;
 
@@ -16,8 +17,20 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
   const [zoom, setZoom] = useState(100);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
+  const [pageSize, setPageSize] = useState<{ width: number; height: number }>({
+    width: 595,
+    height: 842,
+  });
 
   const fileUrl = useMemo(() => URL.createObjectURL(file), [file]);
+
+  const handlePageRenderSuccess = useCallback(
+    (pageObj: any) => {
+      const viewport = pageObj.getViewport({ scale: zoom / 100 });
+      setPageSize({ width: viewport.width, height: viewport.height });
+    },
+    [zoom]
+  );
 
   return (
     <div className="flex flex-col h-full">
@@ -27,46 +40,20 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
           {file.name}
         </span>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setZoom((z) => Math.max(50, z - 10))}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => Math.max(50, z - 10))}>
             <ZoomOut className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-muted-foreground w-12 text-center font-mono">
-            {zoom}%
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setZoom((z) => Math.min(200, z + 10))}
-          >
+          <span className="text-xs text-muted-foreground w-12 text-center font-mono">{zoom}%</span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setZoom((z) => Math.min(200, z + 10))}>
             <ZoomIn className="h-4 w-4" />
           </Button>
         </div>
         <div className="flex items-center gap-1">
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-            disabled={page === 1}
-          >
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.max(1, p - 1))} disabled={page === 1}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-xs text-muted-foreground font-mono">
-            {page} / {totalPages || "–"}
-          </span>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="h-8 w-8"
-            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
-            disabled={page === totalPages}
-          >
+          <span className="text-xs text-muted-foreground font-mono">{page} / {totalPages || "–"}</span>
+          <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setPage((p) => Math.min(totalPages, p + 1))} disabled={page === totalPages}>
             <ChevronRight className="h-4 w-4" />
           </Button>
         </div>
@@ -79,6 +66,7 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
+          className="relative"
         >
           <Document
             file={fileUrl}
@@ -98,6 +86,7 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
               pageNumber={page}
               scale={zoom / 100}
               className="shadow-lg rounded-lg overflow-hidden"
+              onRenderSuccess={handlePageRenderSuccess}
               loading={
                 <div className="flex items-center justify-center h-96 w-[595px] bg-card text-muted-foreground text-sm">
                   Loading page…
@@ -105,6 +94,8 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
               }
             />
           </Document>
+          {/* Editing canvas overlay */}
+          <CanvasOverlay page={page} width={pageSize.width} height={pageSize.height} />
         </motion.div>
       </div>
     </div>

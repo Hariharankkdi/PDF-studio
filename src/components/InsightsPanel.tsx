@@ -11,25 +11,27 @@ import {
   Undo2,
   Redo2,
   Download,
+  Trash2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
-
-type Tool = "highlight" | "note" | "select" | "text" | "draw" | "eraser" | null;
+import { useEditor, Tool } from "./EditorContext";
 
 const InsightsPanel = () => {
-  const [activeTool, setActiveTool] = useState<Tool>(null);
+  const { activeTool, setActiveTool, undo, redo, canUndo, canRedo, actions } = useEditor();
   const [noteText, setNoteText] = useState("");
 
-  const tools = [
-    { id: "highlight" as Tool, icon: Highlighter, label: "Highlight" },
-    { id: "text" as Tool, icon: Type, label: "Text" },
-    { id: "draw" as Tool, icon: Pen, label: "Draw" },
-    { id: "note" as Tool, icon: StickyNote, label: "Note" },
-    { id: "select" as Tool, icon: BoxSelect, label: "Select" },
-    { id: "eraser" as Tool, icon: Eraser, label: "Erase" },
+  const tools: { id: Tool; icon: typeof Pen; label: string }[] = [
+    { id: "highlight", icon: Highlighter, label: "Highlight" },
+    { id: "text", icon: Type, label: "Text" },
+    { id: "draw", icon: Pen, label: "Draw" },
+    { id: "note", icon: StickyNote, label: "Note" },
+    { id: "select", icon: BoxSelect, label: "Select" },
+    { id: "eraser", icon: Eraser, label: "Erase" },
   ];
+
+  const annotationCount = actions.length;
 
   return (
     <div className="flex flex-col h-full border-l border-border bg-card/50 backdrop-blur-sm">
@@ -44,32 +46,51 @@ const InsightsPanel = () => {
               key={tool.id}
               variant={activeTool === tool.id ? "default" : "outline"}
               size="sm"
-              onClick={() =>
-                setActiveTool((t) => (t === tool.id ? null : tool.id))
-              }
-              className={`text-xs gap-1.5 h-9 ${
-                activeTool === tool.id ? "glow-primary-subtle" : ""
-              }`}
+              onClick={() => setActiveTool(activeTool === tool.id ? null : tool.id)}
+              className={`text-xs gap-1.5 h-9 ${activeTool === tool.id ? "glow-primary-subtle" : ""}`}
             >
               <tool.icon className="h-3.5 w-3.5" />
               {tool.label}
             </Button>
           ))}
         </div>
+        {activeTool && (
+          <motion.p
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-[11px] text-muted-foreground mt-2 text-center"
+          >
+            {activeTool === "draw" && "Click and drag to draw on the PDF"}
+            {activeTool === "highlight" && "Click and drag to highlight an area"}
+            {activeTool === "text" && "Click on the PDF to place text"}
+            {activeTool === "note" && "Click on the PDF to add a sticky note"}
+            {activeTool === "select" && "Click and drag to select a data region"}
+            {activeTool === "eraser" && "Use Undo to remove annotations"}
+          </motion.p>
+        )}
       </div>
 
       <Separator />
 
       {/* Undo / Redo */}
       <div className="flex items-center gap-2 p-3">
-        <Button variant="ghost" size="sm" className="flex-1 text-xs gap-1.5">
+        <Button variant="ghost" size="sm" className="flex-1 text-xs gap-1.5" onClick={undo} disabled={!canUndo}>
           <Undo2 className="h-3.5 w-3.5" />
           Undo
         </Button>
-        <Button variant="ghost" size="sm" className="flex-1 text-xs gap-1.5">
+        <Button variant="ghost" size="sm" className="flex-1 text-xs gap-1.5" onClick={redo} disabled={!canRedo}>
           <Redo2 className="h-3.5 w-3.5" />
           Redo
         </Button>
+      </div>
+
+      <Separator />
+
+      {/* Annotation count */}
+      <div className="px-3 py-2">
+        <p className="text-xs text-muted-foreground">
+          {annotationCount} annotation{annotationCount !== 1 ? "s" : ""} added
+        </p>
       </div>
 
       <Separator />
