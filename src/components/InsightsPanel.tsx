@@ -1,64 +1,44 @@
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import {
   Highlighter,
   StickyNote,
   BoxSelect,
   Sparkles,
-  MessageSquare,
-  TrendingUp,
-  FileBarChart,
-  X,
+  Type,
+  Eraser,
+  Pen,
+  Undo2,
+  Redo2,
+  Download,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Separator } from "@/components/ui/separator";
+import { Textarea } from "@/components/ui/textarea";
 
-type Tool = "highlight" | "note" | "select" | null;
-
-interface Annotation {
-  id: string;
-  type: "highlight" | "note" | "extraction";
-  content: string;
-  page: number;
-  timestamp: Date;
-}
+type Tool = "highlight" | "note" | "select" | "text" | "draw" | "eraser" | null;
 
 const InsightsPanel = () => {
   const [activeTool, setActiveTool] = useState<Tool>(null);
-  const [annotations, setAnnotations] = useState<Annotation[]>([
-    {
-      id: "1",
-      type: "highlight",
-      content: "Revenue increased by 23% in Q3 2025",
-      page: 1,
-      timestamp: new Date(),
-    },
-    {
-      id: "2",
-      type: "extraction",
-      content: "Table: Regional Sales Breakdown",
-      page: 2,
-      timestamp: new Date(),
-    },
-  ]);
+  const [noteText, setNoteText] = useState("");
 
   const tools = [
     { id: "highlight" as Tool, icon: Highlighter, label: "Highlight" },
+    { id: "text" as Tool, icon: Type, label: "Text" },
+    { id: "draw" as Tool, icon: Pen, label: "Draw" },
     { id: "note" as Tool, icon: StickyNote, label: "Note" },
-    { id: "select" as Tool, icon: BoxSelect, label: "Extract" },
+    { id: "select" as Tool, icon: BoxSelect, label: "Select" },
+    { id: "eraser" as Tool, icon: Eraser, label: "Erase" },
   ];
-
-  const removeAnnotation = (id: string) => {
-    setAnnotations((prev) => prev.filter((a) => a.id !== id));
-  };
 
   return (
     <div className="flex flex-col h-full border-l border-border bg-card/50 backdrop-blur-sm">
-      {/* Tools */}
-      <div className="border-b border-border p-3">
+      {/* Edit Tools */}
+      <div className="p-3">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Tools
+          Edit Tools
         </p>
-        <div className="flex gap-2">
+        <div className="grid grid-cols-3 gap-2">
           {tools.map((tool) => (
             <Button
               key={tool.id}
@@ -67,7 +47,7 @@ const InsightsPanel = () => {
               onClick={() =>
                 setActiveTool((t) => (t === tool.id ? null : tool.id))
               }
-              className={`flex-1 text-xs gap-1.5 ${
+              className={`text-xs gap-1.5 h-9 ${
                 activeTool === tool.id ? "glow-primary-subtle" : ""
               }`}
             >
@@ -78,81 +58,47 @@ const InsightsPanel = () => {
         </div>
       </div>
 
-      {/* Insights */}
-      <div className="border-b border-border p-3">
-        <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Auto Insights
-        </p>
-        <div className="space-y-2">
-          {[
-            { icon: TrendingUp, text: "3 growth trends detected", color: "text-primary" },
-            { icon: FileBarChart, text: "2 data tables found", color: "text-primary" },
-            { icon: Sparkles, text: "5 key metrics identified", color: "text-primary" },
-          ].map((insight, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, x: 10 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: i * 0.1 }}
-              className="flex items-center gap-2.5 rounded-lg bg-accent/50 px-3 py-2"
-            >
-              <insight.icon className={`h-3.5 w-3.5 ${insight.color}`} />
-              <span className="text-xs text-foreground">{insight.text}</span>
-            </motion.div>
-          ))}
-        </div>
+      <Separator />
+
+      {/* Undo / Redo */}
+      <div className="flex items-center gap-2 p-3">
+        <Button variant="ghost" size="sm" className="flex-1 text-xs gap-1.5">
+          <Undo2 className="h-3.5 w-3.5" />
+          Undo
+        </Button>
+        <Button variant="ghost" size="sm" className="flex-1 text-xs gap-1.5">
+          <Redo2 className="h-3.5 w-3.5" />
+          Redo
+        </Button>
       </div>
 
-      {/* Annotations */}
-      <div className="flex-1 overflow-auto p-3">
+      <Separator />
+
+      {/* Notes area */}
+      <div className="flex-1 p-3 flex flex-col">
         <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-          Annotations
+          Notes
         </p>
-        <AnimatePresence>
-          {annotations.map((ann) => (
-            <motion.div
-              key={ann.id}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, x: 20 }}
-              className="mb-2 rounded-lg border border-border bg-card p-3 group"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div className="flex items-start gap-2 min-w-0">
-                  {ann.type === "highlight" && (
-                    <Highlighter className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-                  )}
-                  {ann.type === "note" && (
-                    <MessageSquare className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-                  )}
-                  {ann.type === "extraction" && (
-                    <BoxSelect className="h-3.5 w-3.5 text-primary mt-0.5 flex-shrink-0" />
-                  )}
-                  <div className="min-w-0">
-                    <p className="text-xs text-foreground">{ann.content}</p>
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Page {ann.page}
-                    </p>
-                  </div>
-                </div>
-                <button
-                  onClick={() => removeAnnotation(ann.id)}
-                  className="opacity-0 group-hover:opacity-100 transition-opacity"
-                >
-                  <X className="h-3 w-3 text-muted-foreground hover:text-foreground" />
-                </button>
-              </div>
-            </motion.div>
-          ))}
-        </AnimatePresence>
+        <Textarea
+          placeholder="Add notes about this document..."
+          value={noteText}
+          onChange={(e) => setNoteText(e.target.value)}
+          className="flex-1 resize-none text-sm bg-background/50 min-h-[120px]"
+        />
       </div>
 
-      {/* Finish Button */}
-      <div className="border-t border-border p-3">
+      <Separator />
+
+      {/* Actions */}
+      <div className="p-3 space-y-2">
+        <Button variant="outline" className="w-full text-sm gap-2">
+          <Download className="h-4 w-4" />
+          Export PDF
+        </Button>
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button className="w-full glow-primary-subtle font-semibold">
-            <Sparkles className="h-4 w-4 mr-2" />
-            Finish Analysis
+          <Button className="w-full glow-primary-subtle font-semibold gap-2">
+            <Sparkles className="h-4 w-4" />
+            Save Changes
           </Button>
         </motion.div>
       </div>
