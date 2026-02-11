@@ -1,4 +1,4 @@
-import { useRef, useState, useCallback, useEffect } from "react";
+import { useRef, useState, useEffect } from "react";
 import { useEditor, DrawAction } from "./EditorContext";
 
 interface CanvasOverlayProps {
@@ -9,18 +9,32 @@ interface CanvasOverlayProps {
 
 const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const editorCtx = useEditor();
-  const { activeTool, actions, addAction, removeAction } = editorCtx;
-  console.log("[CanvasOverlay] activeTool:", activeTool, "actions count:", actions.length);
+  const { activeTool, actions, addAction, removeAction } = useEditor();
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<{ x: number; y: number }[]>([]);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
   const [textInput, setTextInput] = useState<{ x: number; y: number; visible: boolean }>({
-    x: 0,
-    y: 0,
-    visible: false,
+    x: 0, y: 0, visible: false,
   });
   const [textValue, setTextValue] = useState("");
+
+  // Refs to avoid stale closures
+  const activeToolRef = useRef(activeTool);
+  const actionsRef = useRef(actions);
+  const addActionRef = useRef(addAction);
+  const removeActionRef = useRef(removeAction);
+  const isDrawingRef = useRef(isDrawing);
+  const currentPointsRef = useRef(currentPoints);
+  const startPosRef = useRef(startPos);
+
+  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
+  useEffect(() => { actionsRef.current = actions; }, [actions]);
+  useEffect(() => { addActionRef.current = addAction; }, [addAction]);
+  useEffect(() => { removeActionRef.current = removeAction; }, [removeAction]);
+  useEffect(() => { isDrawingRef.current = isDrawing; }, [isDrawing]);
+  useEffect(() => { currentPointsRef.current = currentPoints; }, [currentPoints]);
+  useEffect(() => { startPosRef.current = startPos; }, [startPos]);
 
   const pageActions = actions.filter((a) => a.page === page);
 
@@ -68,7 +82,6 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
       }
 
       if (action.tool === "note" && action.textPos) {
-        // Draw sticky note icon
         const x = action.textPos.x;
         const y = action.textPos.y;
         ctx.fillStyle = "hsl(45, 100%, 80%)";
@@ -79,7 +92,6 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
         if (action.text) {
           ctx.font = "11px Inter, sans-serif";
           ctx.fillStyle = "hsl(215, 28%, 17%)";
-          // Word wrap
           const words = action.text.split(" ");
           let line = "";
           let lineY = y + 16;
@@ -137,83 +149,82 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
-  const handleMouseDown = useCallback(
-    (e: React.MouseEvent) => {
-      console.log("[CanvasOverlay] mouseDown, activeTool:", activeTool);
-      if (!activeTool) return;
-      const pos = getPos(e);
+  const handleMouseDown = (e: React.MouseEvent) => {
+    const tool = activeToolRef.current;
+    if (!tool) return;
+    const pos = getPos(e);
 
-      if (activeTool === "text") {
-        setTextInput({ x: pos.x, y: pos.y, visible: true });
-        setTextValue("");
-        return;
+    if (tool === "text") {
+      e.stopPropagation();
+      setTextInput({ x: pos.x, y: pos.y, visible: true });
+      setTextValue("");
+      return;
+    }
+
+    if (tool === "note") {
+      const noteText = prompt("Enter note:");
+      if (noteText) {
+        addActionRef.current({
+          id: crypto.randomUUID(),
+          tool: "note",
+          page,
+          textPos: pos,
+          text: noteText,
+        });
       }
+      return;
+    }
 
-      if (activeTool === "note") {
-        const noteText = prompt("Enter note:");
-        if (noteText) {
-          addAction({
-            id: crypto.randomUUID(),
-            tool: "note",
-            page,
-            textPos: pos,
-            text: noteText,
-          });
-        }
-        return;
+    if (tool === "eraser") {
+      const pageActs = actionsRef.current.filter((a) => a.page === page);
+      if (pageActs.length > 0) {
+        const lastAction = pageActs[pageActs.length - 1];
+        removeActionRef.current(lastAction.id);
       }
+      return;
+    }
 
-      if (activeTool === "eraser") {
-        // Remove the topmost action near the click point on this page
-        const pageActs = actions.filter((a) => a.page === page);
-        if (pageActs.length > 0) {
-          const lastAction = pageActs[pageActs.length - 1];
-          removeAction(lastAction.id);
-        }
-        return;
-      }
+    setIsDrawing(true);
+    setCurrentPoints([pos]);
+    setStartPos(pos);
+  };
 
-      setIsDrawing(true);
-      setCurrentPoints([pos]);
-      setStartPos(pos);
-    },
-    [activeTool, page, addAction, removeAction, actions]
-  );
+  const handleMouseMove = (e: React.MouseEvent) => {
+    if (!isDrawingRef.current || !activeToolRef.current) return;
+    const pos = getPos(e);
+    setCurrentPoints((prev) => [...prev, pos]);
+  };
 
-  const handleMouseMove = useCallback(
-    (e: React.MouseEvent) => {
-      if (!isDrawing || !activeTool) return;
-      const pos = getPos(e);
-      setCurrentPoints((prev) => [...prev, pos]);
-    },
-    [isDrawing, activeTool]
-  );
+  const handleMouseUp = () => {
+    const drawing = isDrawingRef.current;
+    const tool = activeToolRef.current;
+    const points = currentPointsRef.current;
+    const start = startPosRef.current;
 
-  const handleMouseUp = useCallback(() => {
-    if (!isDrawing || !activeTool || !startPos) {
+    if (!drawing || !tool || !start) {
       setIsDrawing(false);
       return;
     }
 
-    if (activeTool === "draw" && currentPoints.length > 1) {
-      addAction({
+    if (tool === "draw" && points.length > 1) {
+      addActionRef.current({
         id: crypto.randomUUID(),
         tool: "draw",
         page,
-        points: currentPoints,
+        points: [...points],
       });
     }
 
-    if ((activeTool === "highlight" || activeTool === "select") && currentPoints.length > 0) {
-      const last = currentPoints[currentPoints.length - 1];
-      const rx = Math.min(startPos.x, last.x);
-      const ry = Math.min(startPos.y, last.y);
-      const rw = Math.abs(last.x - startPos.x);
-      const rh = Math.abs(last.y - startPos.y);
+    if ((tool === "highlight" || tool === "select") && points.length > 0) {
+      const last = points[points.length - 1];
+      const rx = Math.min(start.x, last.x);
+      const ry = Math.min(start.y, last.y);
+      const rw = Math.abs(last.x - start.x);
+      const rh = Math.abs(last.y - start.y);
       if (rw > 5 && rh > 5) {
-        addAction({
+        addActionRef.current({
           id: crypto.randomUUID(),
-          tool: activeTool,
+          tool,
           page,
           rect: { x: rx, y: ry, w: rw, h: rh },
         });
@@ -223,11 +234,11 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
     setIsDrawing(false);
     setCurrentPoints([]);
     setStartPos(null);
-  }, [isDrawing, activeTool, currentPoints, startPos, page, addAction]);
+  };
 
   const handleTextSubmit = () => {
     if (textValue.trim()) {
-      addAction({
+      addActionRef.current({
         id: crypto.randomUUID(),
         tool: "text",
         page,
@@ -261,7 +272,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
         onMouseLeave={() => {
-          if (isDrawing) handleMouseUp();
+          if (isDrawingRef.current) handleMouseUp();
         }}
         className="absolute inset-0"
         style={{ width, height }}
@@ -278,6 +289,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
             if (e.key === "Escape") setTextInput({ x: 0, y: 0, visible: false });
           }}
           onBlur={handleTextSubmit}
+          onMouseDown={(e) => e.stopPropagation()}
           className="absolute bg-card/90 border border-primary rounded px-2 py-1 text-sm text-foreground outline-none shadow-md"
           style={{ left: textInput.x, top: textInput.y - 10, zIndex: 20 }}
           placeholder="Type here..."
