@@ -66,7 +66,7 @@ const InsightsPanel = () => {
             {activeTool === "text" && "Click on the PDF to place text"}
             {activeTool === "note" && "Click on the PDF to add a sticky note"}
             {activeTool === "select" && "Click and drag to select a data region"}
-            {activeTool === "eraser" && "Use Undo to remove annotations"}
+            {activeTool === "eraser" && "Click on the PDF to erase the last annotation"}
           </motion.p>
         )}
       </div>
