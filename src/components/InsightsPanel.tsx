@@ -20,6 +20,7 @@ import { useEditor, Tool } from "./EditorContext";
 
 const InsightsPanel = () => {
   const { activeTool, setActiveTool, undo, redo, canUndo, canRedo, actions } = useEditor();
+  console.log("[InsightsPanel] activeTool:", activeTool);
   const [noteText, setNoteText] = useState("");
 
   const tools: { id: Tool; icon: typeof Pen; label: string }[] = [

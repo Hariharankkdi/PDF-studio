@@ -9,7 +9,9 @@ interface CanvasOverlayProps {
 
 const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const { activeTool, actions, addAction } = useEditor();
+  const editorCtx = useEditor();
+  const { activeTool, actions, addAction } = editorCtx;
+  console.log("[CanvasOverlay] activeTool:", activeTool, "actions count:", actions.length);
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<{ x: number; y: number }[]>([]);
   const [startPos, setStartPos] = useState<{ x: number; y: number } | null>(null);
