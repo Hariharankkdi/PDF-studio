@@ -17,11 +17,18 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
 import { useEditor, Tool } from "./EditorContext";
+import { renderAnnotatedPDF, downloadPDF } from "./pdfExport";
+import { toast } from "sonner";
 
-const InsightsPanel = () => {
+interface InsightsPanelProps {
+  file: File;
+}
+
+const InsightsPanel = ({ file }: InsightsPanelProps) => {
   const { activeTool, setActiveTool, undo, redo, canUndo, canRedo, actions } = useEditor();
   console.log("[InsightsPanel] activeTool:", activeTool);
   const [noteText, setNoteText] = useState("");
+  const [isExporting, setIsExporting] = useState(false);
 
   const tools: { id: Tool; icon: typeof Pen; label: string }[] = [
     { id: "highlight", icon: Highlighter, label: "Highlight" },
@@ -113,12 +120,47 @@ const InsightsPanel = () => {
 
       {/* Actions */}
       <div className="p-3 space-y-2">
-        <Button variant="outline" className="w-full text-sm gap-2">
+        <Button
+          variant="outline"
+          className="w-full text-sm gap-2"
+          disabled={isExporting}
+          onClick={async () => {
+            setIsExporting(true);
+            try {
+              const bytes = await renderAnnotatedPDF(file, actions);
+              const name = file.name.replace(/\.pdf$/i, "") + "_annotated.pdf";
+              downloadPDF(bytes, name);
+              toast.success("PDF exported successfully!");
+            } catch (err) {
+              console.error(err);
+              toast.error("Failed to export PDF");
+            } finally {
+              setIsExporting(false);
+            }
+          }}
+        >
           <Download className="h-4 w-4" />
-          Export PDF
+          {isExporting ? "Exporting…" : "Export PDF"}
         </Button>
         <motion.div whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.98 }}>
-          <Button className="w-full glow-primary-subtle font-semibold gap-2">
+          <Button
+            className="w-full glow-primary-subtle font-semibold gap-2"
+            disabled={isExporting || actions.length === 0}
+            onClick={async () => {
+              setIsExporting(true);
+              try {
+                const bytes = await renderAnnotatedPDF(file, actions);
+                const name = file.name.replace(/\.pdf$/i, "") + "_annotated.pdf";
+                downloadPDF(bytes, name);
+                toast.success("Changes saved and downloaded!");
+              } catch (err) {
+                console.error(err);
+                toast.error("Failed to save changes");
+              } finally {
+                setIsExporting(false);
+              }
+            }}
+          >
             <Sparkles className="h-4 w-4" />
             Save Changes
           </Button>

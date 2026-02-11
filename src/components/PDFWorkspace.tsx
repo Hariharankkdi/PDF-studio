@@ -20,7 +20,7 @@ const PDFWorkspace = ({ file }: PDFWorkspaceProps) => {
           <PDFViewer file={file} />
         </div>
         <div className="w-72 flex-shrink-0">
-          <InsightsPanel />
+          <InsightsPanel file={file} />
         </div>
       </motion.div>
     </EditorProvider>
