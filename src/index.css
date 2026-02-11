@@ -136,6 +136,12 @@
     background-size: 200% 200%;
     animation: liquid-flow 3s ease-in-out infinite;
   }
+
+
+  .editing-active .react-pdf__Page__textContent,
+  .editing-active .react-pdf__Page__annotations {
+    pointer-events: none !important;
+  }
 }
 
 @keyframes liquid-flow {

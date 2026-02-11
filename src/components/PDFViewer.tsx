@@ -6,6 +6,7 @@ import "react-pdf/dist/esm/Page/AnnotationLayer.css";
 import "react-pdf/dist/esm/Page/TextLayer.css";
 import { Button } from "@/components/ui/button";
 import CanvasOverlay from "./CanvasOverlay";
+import { useEditor } from "./EditorContext";
 
 pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@4.8.69/build/pdf.worker.min.mjs`;
 
@@ -14,6 +15,7 @@ interface PDFViewerProps {
 }
 
 const PDFViewer = ({ file }: PDFViewerProps) => {
+  const { activeTool } = useEditor();
   const [zoom, setZoom] = useState(100);
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
@@ -66,7 +68,7 @@ const PDFViewer = ({ file }: PDFViewerProps) => {
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.3 }}
-          className="relative"
+          className={`relative ${activeTool ? 'editing-active' : ''}`}
         >
           <Document
             file={fileUrl}
