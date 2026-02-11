@@ -252,7 +252,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
     : "default";
 
   return (
-    <div className="absolute inset-0" style={{ cursor: cursorStyle }}>
+    <div className="absolute inset-0" style={{ cursor: cursorStyle, zIndex: 10, pointerEvents: activeTool ? 'auto' : 'none' }}>
       <canvas
         ref={canvasRef}
         width={width}
