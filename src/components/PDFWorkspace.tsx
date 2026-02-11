@@ -3,10 +3,10 @@ import PDFViewer from "./PDFViewer";
 import InsightsPanel from "./InsightsPanel";
 
 interface PDFWorkspaceProps {
-  fileName: string;
+  file: File;
 }
 
-const PDFWorkspace = ({ fileName }: PDFWorkspaceProps) => {
+const PDFWorkspace = ({ file }: PDFWorkspaceProps) => {
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.98 }}
@@ -14,12 +14,9 @@ const PDFWorkspace = ({ fileName }: PDFWorkspaceProps) => {
       transition={{ duration: 0.5, ease: "easeOut" }}
       className="flex h-[calc(100vh-120px)] rounded-2xl border border-border overflow-hidden glass-card"
     >
-      {/* PDF Viewer - Left Pane */}
       <div className="flex-1 min-w-0">
-        <PDFViewer fileName={fileName} />
+        <PDFViewer file={file} />
       </div>
-
-      {/* Insights - Right Pane */}
       <div className="w-72 flex-shrink-0">
         <InsightsPanel />
       </div>
