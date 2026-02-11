@@ -1,5 +1,5 @@
 import { useRef, useState, useEffect } from "react";
-import { useEditor, DrawAction } from "./EditorContext";
+import { useEditor } from "./EditorContext";
 
 interface CanvasOverlayProps {
   page: number;
@@ -9,6 +9,7 @@ interface CanvasOverlayProps {
 
 const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const textInputRef = useRef<HTMLInputElement>(null);
   const { activeTool, actions, addAction, removeAction } = useEditor();
 
   const [isDrawing, setIsDrawing] = useState(false);
@@ -19,24 +20,15 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   });
   const [textValue, setTextValue] = useState("");
 
-  // Refs to avoid stale closures
-  const activeToolRef = useRef(activeTool);
-  const actionsRef = useRef(actions);
-  const addActionRef = useRef(addAction);
-  const removeActionRef = useRef(removeAction);
-  const isDrawingRef = useRef(isDrawing);
-  const currentPointsRef = useRef(currentPoints);
-  const startPosRef = useRef(startPos);
-
-  useEffect(() => { activeToolRef.current = activeTool; }, [activeTool]);
-  useEffect(() => { actionsRef.current = actions; }, [actions]);
-  useEffect(() => { addActionRef.current = addAction; }, [addAction]);
-  useEffect(() => { removeActionRef.current = removeAction; }, [removeAction]);
-  useEffect(() => { isDrawingRef.current = isDrawing; }, [isDrawing]);
-  useEffect(() => { currentPointsRef.current = currentPoints; }, [currentPoints]);
-  useEffect(() => { startPosRef.current = startPos; }, [startPos]);
-
   const pageActions = actions.filter((a) => a.page === page);
+
+  // Focus text input when it becomes visible
+  useEffect(() => {
+    if (textInput.visible && textInputRef.current) {
+      // Use setTimeout to ensure the element is rendered and focusable
+      setTimeout(() => textInputRef.current?.focus(), 0);
+    }
+  }, [textInput.visible]);
 
   // Redraw all actions
   useEffect(() => {
@@ -110,7 +102,6 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
       }
     });
 
-    // Draw current stroke in progress
     if (isDrawing && activeTool === "draw" && currentPoints.length > 1) {
       ctx.beginPath();
       ctx.strokeStyle = "hsl(149, 100%, 33%)";
@@ -122,7 +113,6 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
       ctx.stroke();
     }
 
-    // Draw current rect in progress
     if (isDrawing && startPos && (activeTool === "highlight" || activeTool === "select") && currentPoints.length > 0) {
       const last = currentPoints[currentPoints.length - 1];
       const rx = Math.min(startPos.x, last.x);
@@ -149,22 +139,39 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
     return { x: e.clientX - rect.left, y: e.clientY - rect.top };
   };
 
+  const handleTextSubmit = () => {
+    if (textValue.trim()) {
+      addAction({
+        id: crypto.randomUUID(),
+        tool: "text",
+        page,
+        text: textValue,
+        textPos: { x: textInput.x, y: textInput.y },
+      });
+    }
+    setTextInput({ x: 0, y: 0, visible: false });
+    setTextValue("");
+  };
+
   const handleMouseDown = (e: React.MouseEvent) => {
-    const tool = activeToolRef.current;
-    if (!tool) return;
+    // Skip canvas handling if clicking on the text input
+    if ((e.target as HTMLElement).tagName === "INPUT") return;
+
+    if (!activeTool) return;
     const pos = getPos(e);
 
-    if (tool === "text") {
+    if (activeTool === "text") {
+      e.preventDefault();
       e.stopPropagation();
       setTextInput({ x: pos.x, y: pos.y, visible: true });
       setTextValue("");
       return;
     }
 
-    if (tool === "note") {
+    if (activeTool === "note") {
       const noteText = prompt("Enter note:");
       if (noteText) {
-        addActionRef.current({
+        addAction({
           id: crypto.randomUUID(),
           tool: "note",
           page,
@@ -175,11 +182,11 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
       return;
     }
 
-    if (tool === "eraser") {
-      const pageActs = actionsRef.current.filter((a) => a.page === page);
+    if (activeTool === "eraser") {
+      const pageActs = actions.filter((a) => a.page === page);
       if (pageActs.length > 0) {
         const lastAction = pageActs[pageActs.length - 1];
-        removeActionRef.current(lastAction.id);
+        removeAction(lastAction.id);
       }
       return;
     }
@@ -190,41 +197,36 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   };
 
   const handleMouseMove = (e: React.MouseEvent) => {
-    if (!isDrawingRef.current || !activeToolRef.current) return;
+    if (!isDrawing || !activeTool) return;
     const pos = getPos(e);
     setCurrentPoints((prev) => [...prev, pos]);
   };
 
   const handleMouseUp = () => {
-    const drawing = isDrawingRef.current;
-    const tool = activeToolRef.current;
-    const points = currentPointsRef.current;
-    const start = startPosRef.current;
-
-    if (!drawing || !tool || !start) {
+    if (!isDrawing || !activeTool || !startPos) {
       setIsDrawing(false);
       return;
     }
 
-    if (tool === "draw" && points.length > 1) {
-      addActionRef.current({
+    if (activeTool === "draw" && currentPoints.length > 1) {
+      addAction({
         id: crypto.randomUUID(),
         tool: "draw",
         page,
-        points: [...points],
+        points: [...currentPoints],
       });
     }
 
-    if ((tool === "highlight" || tool === "select") && points.length > 0) {
-      const last = points[points.length - 1];
-      const rx = Math.min(start.x, last.x);
-      const ry = Math.min(start.y, last.y);
-      const rw = Math.abs(last.x - start.x);
-      const rh = Math.abs(last.y - start.y);
+    if ((activeTool === "highlight" || activeTool === "select") && currentPoints.length > 0) {
+      const last = currentPoints[currentPoints.length - 1];
+      const rx = Math.min(startPos.x, last.x);
+      const ry = Math.min(startPos.y, last.y);
+      const rw = Math.abs(last.x - startPos.x);
+      const rh = Math.abs(last.y - startPos.y);
       if (rw > 5 && rh > 5) {
-        addActionRef.current({
+        addAction({
           id: crypto.randomUUID(),
-          tool,
+          tool: activeTool,
           page,
           rect: { x: rx, y: ry, w: rw, h: rh },
         });
@@ -234,20 +236,6 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
     setIsDrawing(false);
     setCurrentPoints([]);
     setStartPos(null);
-  };
-
-  const handleTextSubmit = () => {
-    if (textValue.trim()) {
-      addActionRef.current({
-        id: crypto.randomUUID(),
-        tool: "text",
-        page,
-        text: textValue,
-        textPos: { x: textInput.x, y: textInput.y },
-      });
-    }
-    setTextInput({ x: 0, y: 0, visible: false });
-    setTextValue("");
   };
 
   const cursorStyle = activeTool === "draw"
@@ -263,24 +251,25 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
     : "default";
 
   return (
-    <div className="absolute inset-0" style={{ cursor: cursorStyle, zIndex: 10, pointerEvents: activeTool ? 'auto' : 'none' }}>
+    <div
+      className="absolute inset-0"
+      style={{ cursor: cursorStyle, zIndex: 10, pointerEvents: activeTool ? 'auto' : 'none' }}
+      onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMove}
+      onMouseUp={handleMouseUp}
+      onMouseLeave={() => { if (isDrawing) handleMouseUp(); }}
+    >
       <canvas
         ref={canvasRef}
         width={width}
         height={height}
-        onMouseDown={handleMouseDown}
-        onMouseMove={handleMouseMove}
-        onMouseUp={handleMouseUp}
-        onMouseLeave={() => {
-          if (isDrawingRef.current) handleMouseUp();
-        }}
-        className="absolute inset-0"
+        className="absolute inset-0 pointer-events-none"
         style={{ width, height }}
       />
       {/* Inline text input */}
       {textInput.visible && (
         <input
-          autoFocus
+          ref={textInputRef}
           type="text"
           value={textValue}
           onChange={(e) => setTextValue(e.target.value)}
