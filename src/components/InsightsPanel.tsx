@@ -25,8 +25,7 @@ interface InsightsPanelProps {
 }
 
 const InsightsPanel = ({ file }: InsightsPanelProps) => {
-  const { activeTool, setActiveTool, undo, redo, canUndo, canRedo, actions } = useEditor();
-  console.log("[InsightsPanel] activeTool:", activeTool);
+  const { activeTool, setActiveTool, activeColor, setActiveColor, undo, redo, canUndo, canRedo, actions } = useEditor();
   const [noteText, setNoteText] = useState("");
   const [isExporting, setIsExporting] = useState(false);
 
@@ -63,18 +62,45 @@ const InsightsPanel = ({ file }: InsightsPanelProps) => {
           ))}
         </div>
         {activeTool && (
-          <motion.p
+          <motion.div
             initial={{ opacity: 0, y: -4 }}
             animate={{ opacity: 1, y: 0 }}
-            className="text-[11px] text-muted-foreground mt-2 text-center"
+            className="mt-2"
           >
-            {activeTool === "draw" && "Click and drag to draw on the PDF"}
-            {activeTool === "highlight" && "Click and drag to highlight an area"}
-            {activeTool === "text" && "Click on the PDF to place text"}
-            {activeTool === "note" && "Click on the PDF to add a sticky note"}
-            {activeTool === "select" && "Click and drag to select a data region"}
-            {activeTool === "eraser" && "Click on the PDF to erase the last annotation"}
-          </motion.p>
+            <p className="text-[11px] text-muted-foreground text-center">
+              {activeTool === "draw" && "Click and drag to draw on the PDF"}
+              {activeTool === "highlight" && "Click and drag to highlight an area"}
+              {activeTool === "text" && "Click on the PDF to place text"}
+              {activeTool === "note" && "Click on the PDF to add a sticky note"}
+              {activeTool === "select" && "Click and drag to select a data region"}
+              {activeTool === "eraser" && "Click on the PDF to erase the last annotation"}
+            </p>
+            {(activeTool === "text" || activeTool === "draw") && (
+              <div className="flex items-center gap-2 mt-2">
+                <span className="text-[11px] text-muted-foreground">Color:</span>
+                <div className="flex gap-1.5 flex-wrap">
+                  {[
+                    { value: "hsl(215, 28%, 17%)", label: "Dark" },
+                    { value: "hsl(0, 84%, 50%)", label: "Red" },
+                    { value: "hsl(220, 90%, 50%)", label: "Blue" },
+                    { value: "hsl(149, 100%, 33%)", label: "Green" },
+                    { value: "hsl(25, 95%, 53%)", label: "Orange" },
+                    { value: "hsl(270, 70%, 50%)", label: "Purple" },
+                  ].map((c) => (
+                    <button
+                      key={c.value}
+                      title={c.label}
+                      onClick={() => setActiveColor(c.value)}
+                      className={`w-5 h-5 rounded-full border-2 transition-transform ${
+                        activeColor === c.value ? "border-foreground scale-125" : "border-transparent"
+                      }`}
+                      style={{ backgroundColor: c.value }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+          </motion.div>
         )}
       </div>
 

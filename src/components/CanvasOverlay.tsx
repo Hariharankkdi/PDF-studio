@@ -10,7 +10,7 @@ interface CanvasOverlayProps {
 const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const textInputRef = useRef<HTMLInputElement>(null);
-  const { activeTool, actions, addAction, removeAction } = useEditor();
+  const { activeTool, activeColor, actions, addAction, removeAction } = useEditor();
 
   const [isDrawing, setIsDrawing] = useState(false);
   const [currentPoints, setCurrentPoints] = useState<{ x: number; y: number }[]>([]);
@@ -69,7 +69,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
 
       if (action.tool === "text" && action.text && action.textPos) {
         ctx.font = "14px Inter, sans-serif";
-        ctx.fillStyle = "hsl(215, 28%, 17%)";
+        ctx.fillStyle = action.color || "hsl(215, 28%, 17%)";
         ctx.fillText(action.text, action.textPos.x, action.textPos.y);
       }
 
@@ -147,6 +147,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
         page,
         text: textValue,
         textPos: { x: textInput.x, y: textInput.y },
+        color: activeColor,
       });
     }
     setTextInput({ x: 0, y: 0, visible: false });
@@ -214,6 +215,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
         tool: "draw",
         page,
         points: [...currentPoints],
+        color: activeColor,
       });
     }
 

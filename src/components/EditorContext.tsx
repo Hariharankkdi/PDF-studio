@@ -16,6 +16,8 @@ export interface DrawAction {
 interface EditorContextType {
   activeTool: Tool;
   setActiveTool: (tool: Tool) => void;
+  activeColor: string;
+  setActiveColor: (color: string) => void;
   actions: DrawAction[];
   addAction: (action: DrawAction) => void;
   removeAction: (id: string) => void;
@@ -31,6 +33,8 @@ const EditorContext = createContext<EditorContextType | null>(null);
 const defaultContext: EditorContextType = {
   activeTool: null,
   setActiveTool: () => {},
+  activeColor: "hsl(215, 28%, 17%)",
+  setActiveColor: () => {},
   actions: [],
   addAction: () => {},
   removeAction: () => {},
@@ -48,6 +52,7 @@ export const useEditor = () => {
 
 export const EditorProvider = ({ children }: { children: ReactNode }) => {
   const [activeTool, setActiveTool] = useState<Tool>(null);
+  const [activeColor, setActiveColor] = useState("hsl(215, 28%, 17%)");
   const [actions, setActions] = useState<DrawAction[]>([]);
   const [undoneActions, setUndoneActions] = useState<DrawAction[]>([]);
 
@@ -88,6 +93,8 @@ export const EditorProvider = ({ children }: { children: ReactNode }) => {
       value={{
         activeTool,
         setActiveTool,
+        activeColor,
+        setActiveColor,
         actions,
         addAction,
         removeAction,
