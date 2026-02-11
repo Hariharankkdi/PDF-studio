@@ -27,10 +27,21 @@ interface EditorContextType {
 
 const EditorContext = createContext<EditorContextType | null>(null);
 
+const defaultContext: EditorContextType = {
+  activeTool: null,
+  setActiveTool: () => {},
+  actions: [],
+  addAction: () => {},
+  undo: () => {},
+  redo: () => {},
+  canUndo: false,
+  canRedo: false,
+  clearPage: () => {},
+};
+
 export const useEditor = () => {
   const ctx = useContext(EditorContext);
-  if (!ctx) throw new Error("useEditor must be used within EditorProvider");
-  return ctx;
+  return ctx ?? defaultContext;
 };
 
 export const EditorProvider = ({ children }: { children: ReactNode }) => {
