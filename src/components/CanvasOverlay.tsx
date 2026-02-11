@@ -139,6 +139,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      console.log("[CanvasOverlay] mouseDown, activeTool:", activeTool);
       if (!activeTool) return;
       const pos = getPos(e);
 
@@ -176,7 +177,7 @@ const CanvasOverlay = ({ page, width, height }: CanvasOverlayProps) => {
       setCurrentPoints([pos]);
       setStartPos(pos);
     },
-    [activeTool, page, addAction, actions]
+    [activeTool, page, addAction, removeAction, actions]
   );
 
   const handleMouseMove = useCallback(
